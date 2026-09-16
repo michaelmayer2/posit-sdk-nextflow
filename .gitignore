@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Gradle / Nextflow plugin
+plugin/.gradle/
+plugin/build/
+.gradle/
+
+# Nextflow run artifacts
+.nextflow/
+.nextflow.log*
+work/
+examples/work/
+examples/.nextflow*

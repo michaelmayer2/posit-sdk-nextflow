@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=60"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "posit-workbench-nf-launcher"
+version = "0.1.0"
+description = "CLI that submits/polls/cancels Posit Workbench Jobs, used by the nf-workbench Nextflow executor plugin"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "posit-sdk",
+]
+
+[project.scripts]
+posit-workbench-nf-launcher = "posit_workbench_nf_launcher.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "responses", "ruff"]
+
+[tool.uv.sources]
+posit-sdk = { git = "https://github.com/michaelmayer2/posit-sdk-py", branch = "workbench" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--import-mode=importlib"]
+
+[tool.ruff]
+line-length = 99
+
+[tool.ruff.lint]
+extend-select = ["I"]

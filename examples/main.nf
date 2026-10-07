@@ -40,7 +40,7 @@ with open('numbers.txt') as f, open('squares.txt', 'w') as out:
     '''
 }
 
-// No `container` here -- falls back to whatever the process/executor default is.
+// No `container` here -- falls back to `process.container` in nextflow.config.
 process sum_squares {
     cpus 1
     memory '512 MB'

@@ -48,7 +48,7 @@ uv pip install .
 This makes `posit-workbench-nf-launcher` available on `PATH` inside the active venv. Wherever
 `nextflow run` will execute (the interactive session, or the headless driver job), make sure this
 venv is active or the CLI is otherwise on `PATH` -- the plugin just shells out to whatever name
-`executor.$workbench.launcherCli` is set to (default: `posit-workbench-nf-launcher`).
+`workbench.launcherCli` is set to (default: `posit-workbench-nf-launcher`).
 
 ### 2. Build and install the Nextflow plugin
 
@@ -75,10 +75,8 @@ process {
     executor = 'workbench'
 }
 
-executor {
-    $workbench {
-        cluster = 'my-cluster'   // required -- see below for how to list valid names
-    }
+workbench {
+    cluster = 'my-cluster'   // required -- see below for how to list valid names
 }
 ```
 
@@ -87,6 +85,10 @@ Find valid cluster names:
 from posit.workbench.admin import Client   # or: from posit.workbench import Client, if in-session
 print([c["name"] for c in Client().compute_envs.list()["clusters"]])
 ```
+
+See [`docs/usage.md`](docs/usage.md) for the full usage reference: all `workbench`
+settings, resource profiles, process directive mapping, the example's `--workbench*` command-line params, the
+launcher CLI, and troubleshooting.
 
 ## Example
 
@@ -99,13 +101,18 @@ nextflow run main.nf --workbenchCluster <cluster-name>
 ```
 
 This submits three Workbench Jobs and produces `sum.txt` (`55`, the sum of 1..5 squared). Two of
-the three steps declare their own `container` image; the third falls back to the default.
+the three steps declare their own `container` image; the third falls back to the default
+`process.container` set in `examples/nextflow.config` (override with `--workbenchContainer IMG`).
+Kubernetes clusters require every job to have a container.
 
 ## Resource mapping
 
 Only `cpus` and `memory` process directives are mapped to Workbench `resourceLimits`
 (`cpuCount`/`memory`), matching `posit-sdk-snakemake`'s coverage exactly. `time`, `disk`, and
 `accelerator` are not mapped in this version.
+
+Workbench resource profiles can be selected with `workbench.resourceProfile`, or per
+process with `ext.resourceProfile`. See [`docs/usage.md`](docs/usage.md#resource-profiles).
 
 ## Credentials
 

@@ -18,15 +18,15 @@ import nextflow.util.ServiceName
  * {@code sbatch}/{@code bsub}/{@code qsub}.
  *
  * Users select this executor with {@code process.executor = 'workbench'} and must set the
- * target cluster:
+ * target cluster in the plugin's own {@code workbench} scope (see {@link WorkbenchConfig}):
  * <pre>
- * executor {
- *     $workbench {
- *         cluster = 'my-cluster'                        // required
- *         launcherCli = 'posit-workbench-nf-launcher'    // optional, defaults to this
- *     }
+ * workbench {
+ *     cluster = 'my-cluster'                        // required
+ *     launcherCli = 'posit-workbench-nf-launcher'    // optional, defaults to this
+ *     resourceProfile = 'small'                      // optional, cluster's default if unset
  * }
  * </pre>
+ * A single process can override the resource profile with {@code ext.resourceProfile = 'large'}.
  *
  * Assumes a shared filesystem between wherever Nextflow is driven from and wherever Workbench
  * runs jobs (the same assumption the sibling posit-sdk-snakemake integration makes), since task
@@ -47,19 +47,22 @@ class WorkbenchExecutor extends AbstractGridExecutor {
 
     @PackageScope String cluster
     @PackageScope String launcherCli
+    @PackageScope String resourceProfile
 
     @Override
     void register() {
         super.register()
-        launcherCli = config.getExecConfigProp(name, 'launcherCli', 'posit-workbench-nf-launcher') as String
-        cluster = config.getExecConfigProp(name, 'cluster', null) as String
+        final opts = new WorkbenchConfig((session.config.get('workbench') ?: [:]) as Map)
+        cluster = opts.cluster
+        launcherCli = opts.launcherCli
+        resourceProfile = opts.resourceProfile
         if( !cluster )
             throw new AbortOperationException(
-                "Missing required config `executor.\$workbench.cluster` -- set it to a valid " +
+                "Missing required config `workbench.cluster` -- set it to a valid " +
                 "Workbench compute env/cluster name, e.g. one of " +
                 "`Client().compute_envs.list()['clusters'][*]['name']`"
             )
-        log.debug "[WORKBENCH] cluster=$cluster launcherCli=$launcherCli"
+        log.debug "[WORKBENCH] cluster=$cluster launcherCli=$launcherCli resourceProfile=$resourceProfile"
     }
 
     /**
@@ -104,8 +107,21 @@ class WorkbenchExecutor extends AbstractGridExecutor {
         if( container )
             cmd << '--container' << container
 
+        final profile = resourceProfileFor(task)
+        if( profile )
+            cmd << '--resource-profile' << profile
+
         cmd << scriptFile.getName()
         return cmd
+    }
+
+    /**
+     * Per-process {@code ext.resourceProfile} wins over the executor-wide
+     * {@code workbench.resourceProfile}; neither set means the cluster's default profile.
+     */
+    @PackageScope String resourceProfileFor(TaskRun task) {
+        final ext = task.config.get('ext') as Map
+        return (ext?.get('resourceProfile') ?: resourceProfile) as String
     }
 
     @Override

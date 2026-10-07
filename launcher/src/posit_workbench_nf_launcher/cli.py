@@ -25,7 +25,7 @@ import sys
 
 import posit.workbench
 import posit.workbench.admin
-from posit.workbench import WorkbenchError
+from posit.workbench import WorkbenchError, rpc
 
 _TERMINAL_FAILURE_STATUSES = frozenset({"Failed", "Killed", "Canceled"})
 
@@ -49,15 +49,28 @@ def _resource_limits(cpus: int | None, mem_mb: int | None) -> list[dict[str, str
 
 def cmd_submit(args: argparse.Namespace) -> int:
     client = _make_client()
+    # Built via the SDK's job-spec builder + a raw `launch_job` call (rather than
+    # `client.jobs.launch`) because `jobs.launch` has no `resource_profile` parameter yet, while
+    # the Launcher API does accept -- and validate -- `resourceProfile` on the job spec. Switch
+    # back to `client.jobs.launch(..., resource_profile=...)` once posit-sdk exposes it.
+    spec = client.jobs._build_job(
+        args.cluster,
+        args.name,
+        "/bin/bash",
+        [os.path.abspath(args.script)],
+        working_directory=None,
+        environment=None,
+        tags=None,
+        container={"image": args.container} if args.container else None,
+        resource_limits=_resource_limits(args.cpus, args.mem_mb),
+        queues=None,
+        placement_constraints=None,
+        user=None,
+    )
+    if args.resource_profile:
+        spec["resourceProfile"] = args.resource_profile
     try:
-        job = client.jobs.launch(
-            cluster=args.cluster,
-            name=args.name,
-            exe="/bin/bash",
-            args=[os.path.abspath(args.script)],
-            resource_limits=_resource_limits(args.cpus, args.mem_mb),
-            container={"image": args.container} if args.container else None,
-        )
+        job = rpc.call(client.jobs._ctx.client, "launch_job", job=spec)["job"]
     except WorkbenchError as e:
         print(f"error: failed to submit job: {e}", file=sys.stderr)
         return 1
@@ -107,6 +120,11 @@ def build_parser() -> argparse.ArgumentParser:
     submit.add_argument("--cpus", type=int, default=None)
     submit.add_argument("--mem-mb", type=int, default=None)
     submit.add_argument("--container", default=None, help="Container image reference")
+    submit.add_argument(
+        "--resource-profile",
+        default=None,
+        help="Workbench resource profile name (as configured for the cluster)",
+    )
     submit.add_argument("script", help="Path to the script to run")
     submit.set_defaults(func=cmd_submit)
 

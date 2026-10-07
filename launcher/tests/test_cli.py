@@ -63,6 +63,37 @@ def test_submit_prints_job_id(capsys, tmp_path):
         {"type": "cpuCount", "value": "2"},
         {"type": "memory", "value": "512"},
     ]
+    assert "resourceProfile" not in job
+
+
+@responses.activate
+def test_submit_passes_resource_profile(tmp_path):
+    script = tmp_path / "run.sh"
+    script.write_text("echo hi\n")
+
+    responses.add(
+        responses.POST,
+        _rpc_url("launch_job"),
+        json={"result": {"job": {"id": "43"}}},
+    )
+
+    rc = cli.main(
+        [
+            "submit",
+            "--cluster",
+            "Kubernetes",
+            "--name",
+            "n",
+            "--resource-profile",
+            "large",
+            str(script),
+        ]
+    )
+
+    assert rc == 0
+    job = json.loads(responses.calls[0].request.body)["kwparams"]["job"]
+    assert job["resourceProfile"] == "large"
+    assert "resourceLimits" not in job
 
 
 @responses.activate
@@ -77,7 +108,16 @@ def test_submit_with_container_reports_failure(tmp_path, capsys):
     )
 
     rc = cli.main(
-        ["submit", "--cluster", "bad", "--name", "n", "--container", "python:3.12-slim", str(script)]
+        [
+            "submit",
+            "--cluster",
+            "bad",
+            "--name",
+            "n",
+            "--container",
+            "python:3.12-slim",
+            str(script),
+        ]
     )
 
     assert rc == 1

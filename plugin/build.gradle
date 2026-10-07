@@ -10,6 +10,12 @@ nextflowPlugin {
     provider = 'posit'
     className = 'com.posit.nextflow.workbench.WorkbenchPlugin'
     extensionPoints = [
+        'com.posit.nextflow.workbench.WorkbenchConfig',
         'com.posit.nextflow.workbench.WorkbenchExecutor'
     ]
+}
+
+// Spock 2 runs on the JUnit Platform; Gradle 9 no longer picks a test framework by default
+test {
+    useJUnitPlatform()
 }

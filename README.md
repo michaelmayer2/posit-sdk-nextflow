@@ -105,6 +105,17 @@ the three steps declare their own `container` image; the third falls back to the
 `process.container` set in `examples/nextflow.config` (override with `--workbenchContainer IMG`).
 Kubernetes clusters require every job to have a container.
 
+### RNA-seq example (parallelism)
+
+[`examples/rnaseq/`](examples/rnaseq/README.md) is a more realistic pipeline: Salmon index,
+then FastQC + Salmon quant for each of 4 samples, then MultiQC. It runs 10 Workbench Jobs, with
+up to 8 at a time:
+
+```bash
+cd examples/rnaseq
+nextflow run main.nf --workbenchCluster <cluster-name>
+```
+
 ## Resource mapping
 
 Only `cpus` and `memory` process directives are mapped to Workbench `resourceLimits`

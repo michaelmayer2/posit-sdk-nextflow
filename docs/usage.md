@@ -81,8 +81,19 @@ print([c["name"] for c in Client().compute_envs.list()["clusters"]])
 
 `nf-workbench` is built on Nextflow's grid-executor base class, so the standard
 [executor settings](https://www.nextflow.io/docs/latest/reference/config.html#executor) also
-apply. They go under `executor.$workbench` (or plain `executor`), **not** under the `workbench`
-scope. The ones you're most likely to change:
+apply. They go in the plain `executor` scope, **not** in the `workbench` scope:
+
+```groovy
+executor {
+    queueSize         = 20
+    queueStatInterval = '15 sec'
+}
+```
+
+`executor { $workbench { queueSize = 20 } }` also works at runtime. However, Nextflow 25.10's
+config validator warns `Unrecognized config option` for every `executor.$<name>.*` option,
+including built-in executors like `$slurm`, so the plain `executor` scope avoids the noise. The
+settings you're most likely to change:
 
 | Setting | Effect |
 |---|---|

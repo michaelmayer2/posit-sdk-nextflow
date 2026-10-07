@@ -14,8 +14,8 @@ import nextflow.script.dsl.Description
  * scope against its fixed set of generic executor options, and refuses plugin scopes that
  * collide with an existing scope name like {@code executor}. Hence a separate scope, the same
  * way {@code aws.batch}/{@code google.batch}/{@code k8s} are separate from {@code executor}.
- * Generic grid-executor options ({@code queueSize}, {@code pollInterval}, ...) still go under
- * {@code executor.$workbench}.
+ * Generic grid-executor options ({@code queueSize}, {@code pollInterval}, ...) still go in the
+ * {@code executor} scope.
  */
 @ScopeName('workbench')
 @Description('''

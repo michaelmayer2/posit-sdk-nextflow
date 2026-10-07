@@ -19,3 +19,4 @@ plugin/build/
 work/
 examples/work/
 examples/.nextflow*
+examples/rnaseq/results/

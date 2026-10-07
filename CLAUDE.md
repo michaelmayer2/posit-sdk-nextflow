@@ -54,9 +54,10 @@ cp .venv/bin/posit-workbench-nf-launcher ~/.local/bin # copies launcher binary t
 ```
 The repo has no Gradle wrapper. Run `gradle wrapper` to generate one, then use `make GRADLE=./gradlew ...`.
 
-Example pipeline (needs a real Workbench, the CLI on `PATH`, and the plugin installed):
+Example pipelines (need a real Workbench, the CLI on `PATH`, and the plugin installed). Run them from a directory on the shared filesystem (not `/tmp`), because the Workbench Jobs need to see `work/`:
 ```bash
 cd examples && nextflow run main.nf --workbenchCluster <cluster-name>   # produces sum.txt = 55
+cd examples/rnaseq && nextflow run main.nf                              # 10 jobs, up to 8 parallel; see results/pipeline_info/trace.txt
 ```
 
 ## Architecture: the CLI ↔ plugin contract
@@ -73,7 +74,7 @@ Other design points:
 - **Header script** exports `HOME`/`USER`/`LOGNAME` from the driving JVM. Workbench containers running as a non-root LDAP uid may have no passwd entry.
 - **Auth** happens entirely in the CLI subprocess, using the environment it inherits from Nextflow. `_make_client` tries the in-session `posit.workbench.Client()` first (ambient session cookie) and falls back to `admin.Client()` (`WORKBENCH_SERVER` + `WORKBENCH_API_KEY`) on `OSError`. The tests force the admin path by unsetting `POSIT_PRODUCT`/`RS_SERVER_ADDRESS`, and they mock Workbench's RPC endpoints (`/api/<method>`) with `responses`.
 - **A shared filesystem is assumed** between the Nextflow driver and the Workbench jobs. Task staging, `.command.run`, and completion detection through `.exitcode` all go through `task.workDir`.
-- **Config:** the plugin's settings live in its own top-level `workbench` scope, declared by `WorkbenchConfig` (a `ConfigScope` extension point registered in `build.gradle`) so Nextflow's config validator knows about them. They can't go under `executor.$workbench`: core Nextflow validates that block against its fixed list of executor options, and ignores plugin scopes whose name collides with an existing scope. Generic grid-executor options (`queueSize`, `pollInterval`, ...) still go under `executor.$workbench`. `workbench.cluster` is required (`register()` aborts without it), and `launcherCli` defaults to `posit-workbench-nf-launcher`. A new setting needs a `@ConfigOption` field in `WorkbenchConfig`. The plugin reads no `params`. The `--workbenchCluster`/`--workbenchContainer`/`--launcherCli` flags exist only because `examples/nextflow.config` maps them into config.
+- **Config:** the plugin's settings live in its own top-level `workbench` scope, declared by `WorkbenchConfig` (a `ConfigScope` extension point registered in `build.gradle`) so Nextflow's config validator knows about them. They can't go under `executor.$workbench`: core Nextflow validates that block against its fixed list of executor options, and ignores plugin scopes whose name collides with an existing scope. Generic grid-executor options (`queueSize`, `pollInterval`, ...) go in the plain `executor` scope. `executor.$workbench.*` works at runtime too, but Nextflow 25.10 warns about every `executor.$<name>.*` option, even for core executors. Run validation checks without `nextflow -q`, which hides the warnings. `workbench.cluster` is required (`register()` aborts without it), and `launcherCli` defaults to `posit-workbench-nf-launcher`. A new setting needs a `@ConfigOption` field in `WorkbenchConfig`. The plugin reads no `params`. The `--workbenchCluster`/`--workbenchContainer`/`--launcherCli` flags exist only because `examples/nextflow.config` maps them into config.
 - **User-facing docs:** `docs/usage.md` is the usage reference (config settings, directive mapping, example params, CLI, troubleshooting). Update it whenever you add or change a config setting, directive mapping, example param, or CLI flag.
 
 Known gaps, still unverified end-to-end: no wall-time/disk mapping, log retrieval only works over the shared filesystem, and env-var inheritance across the Positron/RStudio terminal → Nextflow → CLI chain hasn't been confirmed.

@@ -175,3 +175,64 @@ def test_kill_is_best_effort_on_already_finished_jobs():
 
     assert rc == 0
     assert len(responses.calls) == 2
+
+
+@responses.activate
+def test_status_json_filters_by_id(capsys):
+    responses.add(
+        responses.POST,
+        _rpc_url("get_historical_session"),
+        json={"result": {"jobs": []}},
+    )
+    responses.add(
+        responses.POST,
+        _rpc_url("get_session"),
+        json={
+            "result": {
+                "jobs": [
+                    {"id": "1", "status": "Running"},
+                    {"id": "2", "status": "Finished", "exitCode": 0},
+                ]
+            }
+        },
+    )
+
+    rc = cli.main(["status", "--json", "2"])
+
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "2": {"status": "DONE", "workbenchStatus": "Finished"}
+    }
+
+
+@responses.activate
+def test_clusters_json_lists_resource_profiles(capsys):
+    responses.add(
+        responses.POST,
+        _rpc_url("get_compute_envs"),
+        json={
+            "result": {
+                "clusters": [
+                    {"name": "Kubernetes", "resourceProfiles": [{"name": "small"}]},
+                    {"name": "Local"},
+                ]
+            }
+        },
+    )
+
+    rc = cli.main(["clusters", "--json"])
+
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == [
+        {"name": "Kubernetes", "resourceProfiles": ["small"]},
+        {"name": "Local", "resourceProfiles": []},
+    ]
+
+
+def test_whoami_reports_the_api_key_path(capsys):
+    rc = cli.main(["whoami", "--json"])
+
+    assert rc == 0
+    info = json.loads(capsys.readouterr().out)
+    assert info["auth"] == "api-key"
+    assert info["server"].startswith("https://workbench.example.com")

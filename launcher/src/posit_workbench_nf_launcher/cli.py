@@ -11,6 +11,9 @@ contract, the same shape as `sbatch`/`squeue`/`scancel`:
   listing every job for the current user.
 - `kill <id> [<id> ...]`: best-effort; mirrors `scancel`.
 
+`clusters`, `whoami`, and `status --json` are not used by the plugin; they serve tools such as
+the Positron Nextflow extension (cluster pickers, diagnostics, single-job status).
+
 `STATE` values are Nextflow's own `AbstractGridExecutor.QueueStatus` enum names (PENDING,
 RUNNING, HOLD, DONE, ERROR, UNKNOWN), computed here so the Groovy side only has to do
 `QueueStatus.valueOf(token)` -- the Workbench-status-to-Nextflow-status mapping lives in exactly
@@ -20,6 +23,8 @@ one place (this file), not duplicated in Groovy.
 from __future__ import annotations
 
 import argparse
+import getpass
+import json
 import os
 import sys
 
@@ -95,8 +100,59 @@ def _queue_status(job: dict) -> str:
 
 def cmd_status(args: argparse.Namespace) -> int:
     client = _make_client()
-    for job_id, job in client.jobs.get_status_map().items():
+    jobs = client.jobs.get_status_map()
+    if args.ids:
+        jobs = {job_id: job for job_id, job in jobs.items() if job_id in args.ids}
+    if args.json:
+        statuses = {
+            job_id: {"status": _queue_status(job), "workbenchStatus": job.get("status")}
+            for job_id, job in jobs.items()
+        }
+        print(json.dumps(statuses))
+        return 0
+    for job_id, job in jobs.items():
         print(f"{job_id} {_queue_status(job)}")
+    return 0
+
+
+def cmd_clusters(args: argparse.Namespace) -> int:
+    client = _make_client()
+    clusters = [
+        {
+            "name": c["name"],
+            "resourceProfiles": [p["name"] for p in c.get("resourceProfiles") or []],
+        }
+        for c in client.compute_envs.list().get("clusters") or []
+    ]
+    if args.json:
+        print(json.dumps(clusters))
+    else:
+        for c in clusters:
+            print(c["name"])
+    return 0
+
+
+def cmd_whoami(args: argparse.Namespace) -> int:
+    """Report which credential path is active, to check what Nextflow's subprocesses inherit."""
+    try:
+        client = posit.workbench.Client()
+        auth = "session"
+    except OSError:
+        try:
+            client = posit.workbench.admin.Client()
+        except OSError as e:
+            print(f"error: no Workbench credentials: {e}", file=sys.stderr)
+            return 1
+        auth = "api-key"
+    info = {
+        "auth": auth,
+        "server": str(getattr(client, "server_url", "") or os.environ.get("WORKBENCH_SERVER", "")),
+        "user": getpass.getuser(),
+    }
+    if args.json:
+        print(json.dumps(info))
+    else:
+        print(f"{info['user']} via {info['auth']} on {info['server']}")
     return 0
 
 
@@ -129,7 +185,17 @@ def build_parser() -> argparse.ArgumentParser:
     submit.set_defaults(func=cmd_submit)
 
     status = sub.add_parser("status", help="Print `<id> <STATE>` for every known job")
+    status.add_argument("ids", nargs="*", help="Only report these job ids")
+    status.add_argument("--json", action="store_true", help="Print a JSON object keyed by job id")
     status.set_defaults(func=cmd_status)
+
+    clusters = sub.add_parser("clusters", help="List cluster names and their resource profiles")
+    clusters.add_argument("--json", action="store_true")
+    clusters.set_defaults(func=cmd_clusters)
+
+    whoami = sub.add_parser("whoami", help="Show the active Workbench credential path and user")
+    whoami.add_argument("--json", action="store_true")
+    whoami.set_defaults(func=cmd_whoami)
 
     kill = sub.add_parser("kill", help="Stop one or more jobs by id (best-effort)")
     kill.add_argument("ids", nargs="+")

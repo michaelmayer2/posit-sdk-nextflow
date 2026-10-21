@@ -44,6 +44,12 @@ class WorkbenchConfig implements ConfigScope {
     ''')
     final String resourceProfile
 
+    @ConfigOption
+    @Description('''
+        File to append workflow and task events to, one JSON object per line, for tools that follow a run such as the Positron Nextflow extension (default: no events are written).
+    ''')
+    final String eventsFile
+
     /* required by the extension point mechanism */
     WorkbenchConfig() {}
 
@@ -51,5 +57,6 @@ class WorkbenchConfig implements ConfigScope {
         cluster = opts.cluster as String
         launcherCli = (opts.launcherCli ?: DEFAULT_LAUNCHER_CLI) as String
         resourceProfile = opts.resourceProfile as String
+        eventsFile = opts.eventsFile as String
     }
 }

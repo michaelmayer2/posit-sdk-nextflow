@@ -2,7 +2,7 @@ plugins {
     id 'io.nextflow.nextflow-plugin' version '1.0.0-beta.15'
 }
 
-version = '0.1.0'
+version = '0.2.0'
 
 nextflowPlugin {
     nextflowVersion = '25.10.0'
@@ -11,7 +11,8 @@ nextflowPlugin {
     className = 'com.posit.nextflow.workbench.WorkbenchPlugin'
     extensionPoints = [
         'com.posit.nextflow.workbench.WorkbenchConfig',
-        'com.posit.nextflow.workbench.WorkbenchExecutor'
+        'com.posit.nextflow.workbench.WorkbenchExecutor',
+        'com.posit.nextflow.workbench.WorkbenchEventsObserverFactory'
     ]
 }
 

@@ -47,7 +47,7 @@ readability only: either way, authentication is chosen from the environment (see
 
 ```groovy
 plugins {
-    id 'nf-workbench@0.1.0'
+    id 'nf-workbench@0.2.0'
 }
 
 process {
@@ -174,7 +174,7 @@ Events are written for any executor, not only `workbench`. To get them for a pip
 not otherwise use the plugin, load it on the command line:
 
 ```bash
-nextflow run main.nf -plugins nf-workbench@0.1.0 -c events.config   # events.config: workbench { eventsFile = 'events.ndjson' }
+nextflow run main.nf -plugins nf-workbench@0.2.0 -c events.config   # events.config: workbench { eventsFile = 'events.ndjson' }
 ```
 
 Every line has `event` and `utcTime`. Workflow events (`started`, `error`, `completed`) carry a

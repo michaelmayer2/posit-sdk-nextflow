@@ -62,13 +62,13 @@ gradle install   # or: ./gradlew install, once you've generated the wrapper
 ```
 
 This installs the plugin into `~/.nextflow/plugins/`, where Nextflow will find it via the
-`plugins { id 'nf-workbench@0.1.0' }` block in `nextflow.config` (see `examples/nextflow.config`).
+`plugins { id 'nf-workbench@0.2.0' }` block in `nextflow.config` (see `examples/nextflow.config`).
 
 ### 3. Configure your pipeline
 
 ```groovy
 plugins {
-    id 'nf-workbench@0.1.0'
+    id 'nf-workbench@0.2.0'
 }
 
 process {

@@ -202,8 +202,10 @@ Each subcommand can be run by hand with the same credentials Nextflow would use:
 posit-workbench-nf-launcher submit --cluster NAME --name NAME
                                    [--cpus N] [--mem-mb N] [--container IMG]
                                    [--resource-profile NAME] SCRIPT
-posit-workbench-nf-launcher status
+posit-workbench-nf-launcher status [--json] [ID ...]
 posit-workbench-nf-launcher kill ID [ID ...]
+posit-workbench-nf-launcher clusters [--json]
+posit-workbench-nf-launcher whoami [--json]
 ```
 
 | Subcommand | Output | Notes |
@@ -211,6 +213,9 @@ posit-workbench-nf-launcher kill ID [ID ...]
 | `submit` | The new job id on stdout | Runs `SCRIPT` with `/bin/bash`, as an absolute path on the shared filesystem. Exits 1 with `error: failed to submit job: ...` on stderr if the Workbench API rejects the job. |
 | `status` | One `<id> <STATE>` line per job | `STATE` is one of `PENDING`, `RUNNING`, `HOLD`, `DONE`, `ERROR`, `UNKNOWN`. |
 | `kill` | Nothing | Best-effort. Errors such as an already-finished job are ignored. |
+| `status --json` | `{"<id>": {"status": STATE, "workbenchStatus": ...}}` | Only the given ids, if any. Not used by the plugin. |
+| `clusters` | One cluster name per line; with `--json`, `[{"name", "resourceProfiles": [...]}]` | For cluster and profile pickers. Not used by the plugin. |
+| `whoami` | The user, credential path (`session` or `api-key`) and server | Checks which credentials Nextflow's subprocesses inherit. Not used by the plugin. |
 
 ## Troubleshooting
 

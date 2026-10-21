@@ -19,3 +19,6 @@ See the repo root README for install instructions and the two supported launch m
   `QueueStatus.valueOf(token)`.
 - `posit-workbench-nf-launcher kill ID [ID ...]`
   best-effort job cancellation.
+- `posit-workbench-nf-launcher clusters [--json]`, `whoami [--json]` and `status --json [ID ...]`
+  are not used by the plugin. They serve tools such as the Positron Nextflow extension: cluster and
+  resource-profile pickers, a credentials check, and single-job status.

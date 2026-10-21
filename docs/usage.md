@@ -178,8 +178,8 @@ nextflow run main.nf -plugins nf-workbench@0.1.0 -c events.config   # events.con
 ```
 
 Every line has `event` and `utcTime`. Workflow events (`started`, `error`, `completed`) carry a
-`workflow` object with `runName`, `sessionId`, `launchDir`, `workDir`, `success`, `exitStatus`
-and similar fields. Task events (`task_submitted`, `task_started`, `task_completed`,
+`workflow` object with `runName`, `sessionId`, `launchDir`, `workDir`, `success`, `exitStatus`,
+`errorMessage`, `errorReport` and similar fields. Task events (`task_submitted`, `task_started`, `task_completed`,
 `task_cached`) carry the task's `trace` record, including `task_id`, `name`, `process`, `status`,
 `exit`, `native_id` (the Workbench job id) and `workdir`. The `script` and `env` fields are left
 out.

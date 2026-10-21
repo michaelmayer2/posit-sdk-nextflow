@@ -111,7 +111,10 @@ class WorkbenchEventsObserver implements TraceObserverV2 {
         result.complete = meta.complete?.toString()
         result.success = meta.success
         result.exitStatus = meta.exitStatus
-        result.errorMessage = meta.errorMessage
+        // errorMessage is the failed task's stderr, which may be empty;
+        // errorReport has Nextflow's own explanation of the failure
+        result.errorMessage = meta.errorMessage ?: session.error?.message
+        result.errorReport = meta.errorReport
         return result
     }
 

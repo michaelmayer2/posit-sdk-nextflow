@@ -11,7 +11,8 @@ nextflowPlugin {
     className = 'com.posit.nextflow.workbench.WorkbenchPlugin'
     extensionPoints = [
         'com.posit.nextflow.workbench.WorkbenchConfig',
-        'com.posit.nextflow.workbench.WorkbenchExecutor'
+        'com.posit.nextflow.workbench.WorkbenchExecutor',
+        'com.posit.nextflow.workbench.WorkbenchEventsObserverFactory'
     ]
 }
 

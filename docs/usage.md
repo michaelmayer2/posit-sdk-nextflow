@@ -69,6 +69,7 @@ so Nextflow checks the option names: a typo such as `clustr` produces
 | `cluster` | **yes** | – | Workbench cluster name. The run stops at startup if this is unset. |
 | `launcherCli` | no | `posit-workbench-nf-launcher` | Command used to call the launcher CLI. It is looked up on the `PATH` of the `nextflow` process. |
 | `resourceProfile` | no | unset | Default Workbench resource profile for every task. A single process can override it with `ext.resourceProfile`. If neither is set, Workbench uses the cluster's default profile (`custom` on a stock setup). |
+| `eventsFile` | no | unset | File that workflow and task events are appended to, one JSON object per line. Used by the Positron Nextflow extension to follow a run. See [Run events](#run-events). |
 
 To list valid cluster names:
 
@@ -164,6 +165,24 @@ workbench {
     launcherCli = params.launcherCli ?: 'posit-workbench-nf-launcher'
 }
 ```
+
+## Run events
+
+With `workbench.eventsFile` set, the plugin appends one JSON object per line to that file as the
+run progresses. Tools such as the Positron Nextflow extension tail the file to show live status.
+Events are written for any executor, not only `workbench`. To get them for a pipeline that does
+not otherwise use the plugin, load it on the command line:
+
+```bash
+nextflow run main.nf -plugins nf-workbench@0.1.0 -c events.config   # events.config: workbench { eventsFile = 'events.ndjson' }
+```
+
+Every line has `event` and `utcTime`. Workflow events (`started`, `error`, `completed`) carry a
+`workflow` object with `runName`, `sessionId`, `launchDir`, `workDir`, `success`, `exitStatus`
+and similar fields. Task events (`task_submitted`, `task_started`, `task_completed`,
+`task_cached`) carry the task's `trace` record, including `task_id`, `name`, `process`, `status`,
+`exit`, `native_id` (the Workbench job id) and `workdir`. The `script` and `env` fields are left
+out.
 
 ## Credentials
 

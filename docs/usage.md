@@ -213,9 +213,13 @@ To stop a headless run, stop its driver job with `posit-workbench-nf-launcher ki
 That sends SIGTERM, and Nextflow cancels its tasks before it exits. A plain `kill` sends SIGKILL,
 which leaves the task jobs running.
 
-Starting the driver from a session with the session's own credentials depends on whether a copy of
-the session's credentials stays valid after the session ends.
-`examples/headless/check-session-credentials.sh` tests exactly that.
+A driver job submitted from a Positron or RStudio Pro session needs no credentials passed in.
+Workbench gives every job credentials of its own (`RS_SESSION_RPC_COOKIE`, `POSIT_PRODUCT` and
+`RS_SERVER_ADDRESS`). They keep working after the session that submitted the job has stopped, and
+they expire 7 days after the job starts. The launcher in the driver uses them for every task job.
+Do not pass a copy of the session's own cookie: it stops working when the session does.
+`examples/headless/check-session-credentials.sh` checks this on a cluster. The Positron Nextflow
+extension submits such a driver job for you ("As a Workbench Job" in Run Pipeline).
 
 ## Credentials
 

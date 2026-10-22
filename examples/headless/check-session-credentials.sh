@@ -15,6 +15,18 @@ set -euo pipefail
 
 cluster=${1:?usage: $0 <cluster> [<container image>]}
 image=${2:-}
+
+# Prefer the launcher installed with `uv tool install` over an older copy earlier on the PATH
+# (e.g. from an activated launcher/.venv). Override with LAUNCHER=/path/to/launcher.
+launcher=${LAUNCHER:-$HOME/.local/bin/posit-workbench-nf-launcher}
+[ -x "$launcher" ] || launcher=$(command -v posit-workbench-nf-launcher || true)
+if [ -z "$launcher" ] || ! "$launcher" submit --help | grep -q -- "--env"; then
+    echo "error: ${launcher:-posit-workbench-nf-launcher} does not support 'submit --env'; install the launcher from the headless branch:" >&2
+    echo "  uv tool install --force 'git+https://github.com/michaelmayer2/posit-sdk-nextflow@headless#subdirectory=launcher'" >&2
+    echo "Found on the PATH: $(type -a posit-workbench-nf-launcher 2>/dev/null | tr '\n' ' ')" >&2
+    exit 1
+fi
+echo "using $launcher"
 dir="$HOME/.cache/nf-workbench-headless-check/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$dir/.session"
 chmod 700 "$dir/.session"
@@ -31,11 +43,13 @@ chmod 600 "$dir/.session/rpc_cookie"
 expiry=$(cut -d'|' -f2 "$dir/.session/rpc_cookie" | sed 's/%2C/,/g; s/%20/ /g; s/%3A/:/g')
 echo "cookie copied; it expires $expiry"
 
-cat > "$dir/job.sh" <<'JOB'
+cat > "$dir/job.sh" <<JOB
 #!/bin/bash
-export PATH="$HOME/.local/bin:$PATH"
+launcher="$launcher"
+JOB
+cat >> "$dir/job.sh" <<'JOB'
 for i in $(seq 1 30); do
-    if out=$(posit-workbench-nf-launcher status 2>&1); then
+    if out=$("$launcher" status 2>&1); then
         echo "$(date -u +%FT%TZ) ok: the API accepted the cookie ($(echo "$out" | wc -l) jobs listed)"
     else
         echo "$(date -u +%FT%TZ) FAILED: $(echo "$out" | tail -1)"
@@ -45,7 +59,7 @@ done
 JOB
 chmod +x "$dir/job.sh"
 
-job=$(posit-workbench-nf-launcher submit --cluster "$cluster" --name nf-headless-check \
+job=$("$launcher" submit --cluster "$cluster" --name nf-headless-check \
     ${image:+--container "$image"} \
     --env PWB_SESSION_RUNTIME_DIR="$dir/.session" \
     --env POSIT_PRODUCT=WORKBENCH \

@@ -142,7 +142,10 @@ cd launcher && uv pip install ".[dev]" && uv run pytest
 cd plugin && gradle test
 ```
 
-Verified end-to-end with a real Workbench cluster is still required before relying on this in
-production -- see the plan's "Open questions" for known gaps (no wall-time/disk resource mapping,
-shared-filesystem-only log retrieval, and unverified env-var inheritance across the
-Positron/RStudio terminal -> Nextflow -> CLI subprocess chain).
+The interactive mode has been verified end-to-end on a real Workbench cluster. `examples/rnaseq`
+was launched from a Positron session through the
+[Positron Nextflow extension](https://github.com/michaelmayer2/positron-nextflow-extension), and
+the launcher CLI picked up the session's credentials (`posit-workbench-nf-launcher whoami`
+reports `via session`). The headless mode, where the driver runs as a Workbench Job, has not been
+tested yet. Known limitations: no wall-time/disk resource mapping, and log retrieval works only
+over the shared filesystem.

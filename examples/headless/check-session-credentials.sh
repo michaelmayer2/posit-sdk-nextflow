@@ -8,13 +8,16 @@
 #
 #   ./check-session-credentials.sh <cluster> [<container image>]
 #
+# The job runs in the session's own image (PWB_SESSION_CONTAINER_IMAGE) unless another one is
+# given. Kubernetes clusters require an image.
+#
 # It submits a job that calls the Workbench API once a minute for 30 minutes, using a copy of
 # the cookie, and logs each result. Suspend or stop the session while it runs, then read the
 # log from a new session.
 set -euo pipefail
 
 cluster=${1:?usage: $0 <cluster> [<container image>]}
-image=${2:-}
+image=${2:-${PWB_SESSION_CONTAINER_IMAGE:-}}
 
 # Prefer the launcher installed with `uv tool install` over an older copy earlier on the PATH
 # (e.g. from an activated launcher/.venv). Override with LAUNCHER=/path/to/launcher.
@@ -27,6 +30,7 @@ if [ -z "$launcher" ] || ! "$launcher" submit --help | grep -q -- "--env"; then
     exit 1
 fi
 echo "using $launcher"
+echo "image: ${image:-none, the cluster default}"
 dir="$HOME/.cache/nf-workbench-headless-check/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$dir/.session"
 chmod 700 "$dir/.session"

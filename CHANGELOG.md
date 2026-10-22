@@ -3,6 +3,12 @@
 All notable changes to `nf-workbench` (the Nextflow plugin) and `posit-workbench-nf-launcher`
 (the launcher CLI) are documented here. The two are versioned together.
 
+## Unreleased
+
+### Changed
+
+- Docs: the interactive mode has been verified end-to-end on Posit Workbench, including session credentials reaching the launcher CLI. The headless mode is still untested.
+
 ## 0.2.0 - 2026-10-21
 
 ### Added

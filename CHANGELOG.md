@@ -3,7 +3,7 @@
 All notable changes to `nf-workbench` (the Nextflow plugin) and `posit-workbench-nf-launcher`
 (the launcher CLI) are documented here. The two are versioned together.
 
-## Unreleased
+## 0.3.0 - 2026-10-23
 
 ### Added
 
@@ -14,7 +14,8 @@ All notable changes to `nf-workbench` (the Nextflow plugin) and `posit-workbench
 
 ### Changed
 
-- Docs: the interactive mode has been verified end-to-end on Posit Workbench, including session credentials reaching the launcher CLI. The headless mode is still untested.
+- Docs: verified end-to-end on Posit Workbench (Kubernetes): the interactive mode, with the session's credentials reaching the launcher CLI, and headless runs started from a Positron session, whose driver job submits its tasks with credentials of its own. Headless runs submitted through the Workbench API with `WORKBENCH_API_KEY` are not tested yet.
+- The plugin and launcher are now 0.3.0. Update `plugins { id 'nf-workbench@0.3.0' }` in pipeline configs.
 
 ## 0.2.0 - 2026-10-21
 

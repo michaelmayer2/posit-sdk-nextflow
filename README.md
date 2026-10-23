@@ -62,13 +62,13 @@ gradle install   # or: ./gradlew install, once you've generated the wrapper
 ```
 
 This installs the plugin into `~/.nextflow/plugins/`, where Nextflow will find it via the
-`plugins { id 'nf-workbench@0.2.0' }` block in `nextflow.config` (see `examples/nextflow.config`).
+`plugins { id 'nf-workbench@0.3.0' }` block in `nextflow.config` (see `examples/nextflow.config`).
 
 ### 3. Configure your pipeline
 
 ```groovy
 plugins {
-    id 'nf-workbench@0.2.0'
+    id 'nf-workbench@0.3.0'
 }
 
 process {
@@ -146,6 +146,8 @@ The interactive mode has been verified end-to-end on a real Workbench cluster. `
 was launched from a Positron session through the
 [Positron Nextflow extension](https://github.com/sol-eng/positron-nextflow-extension), and
 the launcher CLI picked up the session's credentials (`posit-workbench-nf-launcher whoami`
-reports `via session`). The headless mode, where the driver runs as a Workbench Job, has not been
-tested yet. Known limitations: no wall-time/disk resource mapping, and log retrieval works only
-over the shared filesystem.
+reports `via session`). So have headless runs started from a Positron session, where the driver
+runs as a Workbench Job and submits its tasks with the job's own credentials. Headless runs
+submitted through the Workbench API with `WORKBENCH_API_KEY` have not been tested yet. Known
+limitations: no wall-time/disk resource mapping, and log retrieval works only over the shared
+filesystem.

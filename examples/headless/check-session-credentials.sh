@@ -25,7 +25,7 @@ launcher=${LAUNCHER:-$HOME/.local/bin/posit-workbench-nf-launcher}
 [ -x "$launcher" ] || launcher=$(command -v posit-workbench-nf-launcher || true)
 if [ -z "$launcher" ] || ! "$launcher" submit --help | grep -q -- "--env"; then
     echo "error: ${launcher:-posit-workbench-nf-launcher} does not support 'submit --env'; install the launcher from the headless branch:" >&2
-    echo "  uv tool install --force 'git+https://github.com/michaelmayer2/posit-sdk-nextflow@headless#subdirectory=launcher'" >&2
+    echo "  uv tool install --force 'git+https://github.com/sol-eng/posit-sdk-nextflow@headless#subdirectory=launcher'" >&2
     echo "Found on the PATH: $(type -a posit-workbench-nf-launcher 2>/dev/null | tr '\n' ' ')" >&2
     exit 1
 fi

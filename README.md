@@ -144,7 +144,7 @@ cd plugin && gradle test
 
 The interactive mode has been verified end-to-end on a real Workbench cluster. `examples/rnaseq`
 was launched from a Positron session through the
-[Positron Nextflow extension](https://github.com/michaelmayer2/positron-nextflow-extension), and
+[Positron Nextflow extension](https://github.com/sol-eng/positron-nextflow-extension), and
 the launcher CLI picked up the session's credentials (`posit-workbench-nf-launcher whoami`
 reports `via session`). The headless mode, where the driver runs as a Workbench Job, has not been
 tested yet. Known limitations: no wall-time/disk resource mapping, and log retrieval works only

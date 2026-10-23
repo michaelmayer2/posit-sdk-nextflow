@@ -5,6 +5,13 @@ All notable changes to `nf-workbench` (the Nextflow plugin) and `posit-workbench
 
 ## Unreleased
 
+### Added
+
+- Launcher: `submit --env KEY[=VALUE]` (repeatable; a bare `KEY` passes the variable through) and `--workdir`, to submit a headless Nextflow driver as a Workbench Job.
+- Launcher: `kill --graceful` stops a job with SIGTERM instead of SIGKILL, so a Nextflow driver can cancel its tasks.
+- `examples/headless/`: a driver script for headless runs, and a script that checks that a job's own Workbench credentials keep working after the session that submitted it has stopped.
+- Docs: "Headless runs" in `docs/usage.md`.
+
 ### Changed
 
 - Docs: the interactive mode has been verified end-to-end on Posit Workbench, including session credentials reaching the launcher CLI. The headless mode is still untested.

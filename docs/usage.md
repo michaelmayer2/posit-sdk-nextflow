@@ -184,6 +184,43 @@ Every line has `event` and `utcTime`. Workflow events (`started`, `error`, `comp
 `exit`, `native_id` (the Workbench job id) and `workdir`. The `script` and `env` fields are left
 out.
 
+## Headless runs
+
+The Nextflow driver (`nextflow run` itself) can run as a Workbench Job too, so the pipeline keeps
+running without a session. The driver then submits its tasks as Workbench Jobs, using the
+credentials it was given.
+
+Through the Workbench API, e.g. from a laptop or CI, give the driver job an API token. Its task
+jobs then use the same token:
+
+```bash
+export WORKBENCH_SERVER=https://workbench.example.com WORKBENCH_API_KEY=...
+cd /shared/project    # on the shared filesystem
+posit-workbench-nf-launcher submit --cluster Kubernetes --name nf-driver \
+    --container IMAGE --cpus 2 --mem-mb 4096 \
+    --env WORKBENCH_SERVER --env WORKBENCH_API_KEY \
+    --workdir . examples/headless/driver.sh
+```
+
+A bare `--env NAME` passes the variable through from your environment. The token is then part of
+the job's environment, so anyone who can see the job's details can see it.
+
+The image needs bash, `ps` and Java 17 or later. Nextflow, this plugin and the launcher CLI are
+found in the shared home directory (`~/.local/bin`, `~/.nextflow/plugins`), or must be installed in
+the image.
+
+To stop a headless run, stop its driver job with `posit-workbench-nf-launcher kill --graceful ID`.
+That sends SIGTERM, and Nextflow cancels its tasks before it exits. A plain `kill` sends SIGKILL,
+which leaves the task jobs running.
+
+A driver job submitted from a Positron or RStudio Pro session needs no credentials passed in.
+Workbench gives every job credentials of its own (`RS_SESSION_RPC_COOKIE`, `POSIT_PRODUCT` and
+`RS_SERVER_ADDRESS`). They keep working after the session that submitted the job has stopped, and
+they expire 7 days after the job starts. The launcher in the driver uses them for every task job.
+Do not pass a copy of the session's own cookie: it stops working when the session does.
+`examples/headless/check-session-credentials.sh` checks this on a cluster. The Positron Nextflow
+extension submits such a driver job for you ("As a Workbench Job" in Run Pipeline).
+
 ## Credentials
 
 The launcher CLI handles authentication using the environment it inherits from `nextflow`:
@@ -201,18 +238,19 @@ Each subcommand can be run by hand with the same credentials Nextflow would use:
 ```text
 posit-workbench-nf-launcher submit --cluster NAME --name NAME
                                    [--cpus N] [--mem-mb N] [--container IMG]
-                                   [--resource-profile NAME] SCRIPT
+                                   [--resource-profile NAME] [--env KEY[=VALUE] ...]
+                                   [--workdir DIR] SCRIPT
 posit-workbench-nf-launcher status [--json] [ID ...]
-posit-workbench-nf-launcher kill ID [ID ...]
+posit-workbench-nf-launcher kill [--graceful] ID [ID ...]
 posit-workbench-nf-launcher clusters [--json]
 posit-workbench-nf-launcher whoami [--json]
 ```
 
 | Subcommand | Output | Notes |
 |---|---|---|
-| `submit` | The new job id on stdout | Runs `SCRIPT` with `/bin/bash`, as an absolute path on the shared filesystem. Exits 1 with `error: failed to submit job: ...` on stderr if the Workbench API rejects the job. |
+| `submit` | The new job id on stdout | Runs `SCRIPT` with `/bin/bash`, as an absolute path on the shared filesystem. Exits 1 with `error: failed to submit job: ...` on stderr if the Workbench API rejects the job. `--env` sets the job's environment (a bare `--env KEY` passes a variable through) and `--workdir` its working directory; the plugin uses neither. |
 | `status` | One `<id> <STATE>` line per job | `STATE` is one of `PENDING`, `RUNNING`, `HOLD`, `DONE`, `ERROR`, `UNKNOWN`. |
-| `kill` | Nothing | Best-effort. Errors such as an already-finished job are ignored. |
+| `kill` | Nothing | Best-effort. Errors such as an already-finished job are ignored. Sends SIGKILL; `--graceful` sends SIGTERM so the job can clean up. |
 | `status --json` | `{"<id>": {"status": STATE, "workbenchStatus": ...}}` | Only the given ids, if any. Not used by the plugin. |
 | `clusters` | One cluster name per line; with `--json`, `[{"name", "resourceProfiles": [...]}]` | For cluster and profile pickers. Not used by the plugin. |
 | `whoami` | The user, credential path (`session` or `api-key`) and server | Checks which credentials Nextflow's subprocesses inherit. Not used by the plugin. |

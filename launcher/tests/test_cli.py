@@ -236,3 +236,73 @@ def test_whoami_reports_the_api_key_path(capsys):
     info = json.loads(capsys.readouterr().out)
     assert info["auth"] == "api-key"
     assert info["server"].startswith("https://workbench.example.com")
+
+
+@responses.activate
+def test_submit_sets_and_passes_through_environment(tmp_path, monkeypatch):
+    script = tmp_path / "driver.sh"
+    script.write_text("exec nextflow run main.nf\n")
+    monkeypatch.setenv("WORKBENCH_API_KEY", "test-token")
+    responses.add(responses.POST, _rpc_url("launch_job"), json={"result": {"job": {"id": "7"}}})
+
+    rc = cli.main(
+        [
+            "submit",
+            "--cluster",
+            "Kubernetes",
+            "--name",
+            "nf-driver",
+            "--env",
+            "NXF_OPTS=-Xmx3g -Xms512m",
+            "--env",
+            "WORKBENCH_API_KEY",
+            "--workdir",
+            str(tmp_path),
+            str(script),
+        ]
+    )
+
+    assert rc == 0
+    job = json.loads(responses.calls[0].request.body)["kwparams"]["job"]
+    assert job["environment"] == [
+        {"name": "NXF_OPTS", "value": "-Xmx3g -Xms512m"},
+        {"name": "WORKBENCH_API_KEY", "value": "test-token"},
+    ]
+    assert job["workingDirectory"] == str(tmp_path)
+
+
+def test_submit_rejects_an_unset_pass_through_variable(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv("NOT_SET_ANYWHERE", raising=False)
+    script = tmp_path / "driver.sh"
+    script.write_text("true\n")
+
+    rc = cli.main(
+        ["submit", "--cluster", "K", "--name", "n", "--env", "NOT_SET_ANYWHERE", str(script)]
+    )
+
+    assert rc == 1
+    assert "NOT_SET_ANYWHERE" in capsys.readouterr().err
+
+
+@responses.activate
+def test_submit_without_env_sends_no_environment(tmp_path):
+    script = tmp_path / "run.sh"
+    script.write_text("true\n")
+    responses.add(responses.POST, _rpc_url("launch_job"), json={"result": {"job": {"id": "8"}}})
+
+    assert cli.main(["submit", "--cluster", "K", "--name", "n", str(script)]) == 0
+
+    job = json.loads(responses.calls[0].request.body)["kwparams"]["job"]
+    assert "environment" not in job
+    assert "workingDirectory" not in job
+
+
+@responses.activate
+@pytest.mark.parametrize(("flags", "force_quit"), [([], True), (["--graceful"], False)])
+def test_kill_is_forced_unless_graceful(flags, force_quit):
+    responses.add(responses.POST, _rpc_url("stop_job"), json={"result": None})
+
+    assert cli.main(["kill", *flags, "42"]) == 0
+
+    sent = json.loads(responses.calls[0].request.body)["kwparams"]
+    assert sent == {"job_id": "42", "force_quit": force_quit}

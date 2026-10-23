@@ -11,6 +11,9 @@ contract, the same shape as `sbatch`/`squeue`/`scancel`:
   listing every job for the current user.
 - `kill <id> [<id> ...]`: best-effort; mirrors `scancel`.
 
+`submit --env/--workdir` and `kill --graceful` are not used by the plugin; they let the same CLI
+submit and stop a headless Nextflow driver job (see docs/usage.md, "Headless runs").
+
 `clusters`, `whoami`, and `status --json` are not used by the plugin; they serve tools such as
 the Positron Nextflow extension (cluster pickers, diagnostics, single-job status).
 
@@ -52,7 +55,25 @@ def _resource_limits(cpus: int | None, mem_mb: int | None) -> list[dict[str, str
     return limits or None
 
 
+def _environment(entries: list[str] | None) -> list[dict[str, str]] | None:
+    """`KEY=VALUE` sets a variable; a bare `KEY` passes it through from this process."""
+    env = []
+    for entry in entries or []:
+        name, sep, value = entry.partition("=")
+        if not sep:
+            if name not in os.environ:
+                raise ValueError(f"--env {name}: not set in this environment")
+            value = os.environ[name]
+        env.append({"name": name, "value": value})
+    return env or None
+
+
 def cmd_submit(args: argparse.Namespace) -> int:
+    try:
+        environment = _environment(args.env)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     client = _make_client()
     # Built via the SDK's job-spec builder + a raw `launch_job` call (rather than
     # `client.jobs.launch`) because `jobs.launch` has no `resource_profile` parameter yet, while
@@ -63,8 +84,8 @@ def cmd_submit(args: argparse.Namespace) -> int:
         args.name,
         "/bin/bash",
         [os.path.abspath(args.script)],
-        working_directory=None,
-        environment=None,
+        working_directory=os.path.abspath(args.workdir) if args.workdir else None,
+        environment=environment,
         tags=None,
         container={"image": args.container} if args.container else None,
         resource_limits=_resource_limits(args.cpus, args.mem_mb),
@@ -160,7 +181,8 @@ def cmd_kill(args: argparse.Namespace) -> int:
     client = _make_client()
     for job_id in args.ids:
         try:
-            client.jobs.stop(job_id, force_quit=True)
+            # a graceful stop sends SIGTERM, so e.g. a Nextflow driver can cancel its tasks
+            client.jobs.stop(job_id, force_quit=not args.graceful)
         except WorkbenchError:
             pass  # best-effort cancellation, e.g. the job may have already finished
     return 0
@@ -181,6 +203,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Workbench resource profile name (as configured for the cluster)",
     )
+    submit.add_argument(
+        "--env",
+        action="append",
+        metavar="KEY[=VALUE]",
+        help="Set an environment variable for the job; a bare KEY passes it through (repeatable)",
+    )
+    submit.add_argument("--workdir", default=None, help="Working directory of the job")
     submit.add_argument("script", help="Path to the script to run")
     submit.set_defaults(func=cmd_submit)
 
@@ -199,6 +228,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     kill = sub.add_parser("kill", help="Stop one or more jobs by id (best-effort)")
     kill.add_argument("ids", nargs="+")
+    kill.add_argument(
+        "--graceful",
+        action="store_true",
+        help="Send SIGTERM instead of SIGKILL, so the job can clean up",
+    )
     kill.set_defaults(func=cmd_kill)
 
     return parser
